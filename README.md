@@ -3,7 +3,7 @@ Bot para responder uma _repetyda_ pergunta no Twitter.
 
 ## Inspiração
 
-O artista [Juão Nin](https://twitter.com/juaonin) é fundador da banda Androide Sem Par e ativista em prol das comunidades indígenas. Em protesto a invisibilização da cultura indígena, ele passou a trocar a letra I pela Y em seus textos.
+O artista Potyguara [Juão Nin](https://twitter.com/juaonin) é fundador da banda Androide Sem Par e ativista em prol das comunidades indígenas. Em protesto a invisibilização da cultura indígena, ele passou a trocar a letra I pela Y em seus textos.
  
 Os constantes questionamentos do seus seguidores nas redes sociais sobre o uso da letra Y o fizeram pensar em criar um bot para responder a essas perguntas. 
 
