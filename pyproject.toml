@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "respondeay"
+version = "0.1.0"
+description = "Bot para responder uma repetyda pergunda."
+authors = ["Sedir Morais <philippi.sedir@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+tweepy = {git = "https://github.com/tweepy/tweepy.git", rev = "e7487586b945767643664cf2716a476b0ddcbb19"}
+environs = "^7.1.0"
+nltk = "^3.4.5"
+
+[tool.poetry.dev-dependencies]
+jupyter = "^1.0.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
