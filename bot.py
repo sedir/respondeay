@@ -101,14 +101,13 @@ def check_direct_messages(api, since_id):
                 msg = dm.message_create['message_data']['text']
 
                 if evaluate_question(msg):
-                    logger.info(f"Encontrei DM de {sender_id}: {msg}")
+                    logger.info(f"Encontrey DM de {sender_id}: {msg}")
                     try:
                         api.send_direct_message(str(sender_id), get_answer())
                     except Exception as e:
                         logger.error(f"DM - Erro ao responder: {str(e)}")
     except Exception as e:
         logger.error(f"DM - Erro de chamada: {str(e)}")
-        pass
     return new_since_id
 
 
