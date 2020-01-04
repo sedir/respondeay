@@ -4,13 +4,15 @@ import tweepy
 
 import logging
 import time
-from random import choice
 
 from environs import Env
 
+import threading
 import os
 
 # Confyguração de logs e varyáveys de ambiente
+from answers import get_answer
+from text_handler import evaluate_question
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -39,43 +41,23 @@ auth.access_token_secret = env("ACCESS_SECRET")
 
 api = tweepy.API(auth)
 
-# %%
-
-# Função para identyfycação da pergunta (super symples!)
-
-question = "porque,por que,?,pq"
-main_words = "y,ypsylon,ipslon,ipsilon,ypslon"
+me = api.me()
 
 
-def evaluate_question(text):
-    return any(s in text for s in question.split(',')) and any(s in text for s in main_words.split(','))
+# Função para guardar o YD do últymo recurso analysado
 
 
-# %%
-
-# Seleção de resposta aleatórya
-
-with open(os.path.join(base_path, 'data/answers.txt')) as file:
-    answers = file.read().split('\n-----\n')
-
-
-def get_answer():
-    return choice(answers)
-
-
-# %%
-
-# Função para guardar o últymo tuyte analysado
-
-def save_last_id(id, path=os.path.join(base_path, 'data/last_id.txt')):
+def save_last_id(id, resource):
+    path = os.path.join(base_path, f'data/{resource}.txt')
     with open(path, 'w') as file:
         file.write(str(id))
         return id
 
 
-# Função para recuperar o últymo tuyte analysado
+# Função para recuperar o YD do últymo recurso analysado
 
-def read_last_id(path=os.path.join(base_path, 'data/last_id.txt')):
+def read_last_id(resource):
+    path = os.path.join(base_path, f'data/{resource}.txt')
     try:
         with open(path, 'r') as file:
             return int(file.read().strip())
@@ -86,11 +68,12 @@ def read_last_id(path=os.path.join(base_path, 'data/last_id.txt')):
 # Função para analysar e responder os tuytes
 
 def check_mentions(api, since_id):
-    logger.info("Recuperando menções...")
     new_since_id = since_id
-    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id).items():
+    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id, tweet_mode='extended').items():
         new_since_id = max(tweet.id, new_since_id)
-        if evaluate_question(tweet.text.lower()):
+        if me.id == tweet.user.id:
+            continue
+        if evaluate_question(tweet.full_text.lower()):
             logger.info(f"Respondendo para {tweet.user.screen_name}, TWEET_ID {tweet.id}")
             try:
                 api.update_status(
@@ -98,22 +81,58 @@ def check_mentions(api, since_id):
                     in_reply_to_status_id=tweet.id,
                     auto_populate_reply_metadata=True
                 )
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Tweet - Erro ao responder: {str(e)}")
+    return new_since_id
+
+
+def check_direct_messages(api, since_id):
+    new_since_id = since_id
+    try:
+        for dm in tweepy.Cursor(api.list_direct_messages).items():
+            if dm.type == 'message_create':
+                dm_id = int(dm.id)
+                new_since_id = max(dm_id, new_since_id)
+                sender_id = int(dm.message_create['sender_id'])
+                if dm_id <= since_id:
+                    break
+                if me.id == sender_id:
+                    continue
+                msg = dm.message_create['message_data']['text']
+
+                if evaluate_question(msg):
+                    logger.info(f"Encontrei DM de {sender_id}: {msg}")
+                    try:
+                        api.send_direct_message(str(sender_id), get_answer())
+                    except Exception as e:
+                        logger.error(f"DM - Erro ao responder: {str(e)}")
+    except Exception as e:
+        logger.error(f"DM - Erro de chamada: {str(e)}")
+        pass
     return new_since_id
 
 
 # %%
 
-# Função que roda o robô ynfynytamente
+# Funções que rodam ynfynytamente no robô
 
-def main():
-    since_id = read_last_id()
+def monitor_tweets():
+    since_id = read_last_id('tweet_id')
     wait = env.int('INTERVAL', 30)
+    logger.info(f"Atualyzando tuytes a cada {wait} segundos...")
     while True:
         since_id = check_mentions(api, since_id)
-        save_last_id(since_id)
-        logger.info(f"Esperando {wait} segundos...")
+        save_last_id(since_id, 'tweet_id')
+        time.sleep(wait)
+
+
+def monitor_dms():
+    since_id = read_last_id('dm_id')
+    wait = env.int('INTERVAL', 30) * 10
+    logger.info(f"Atualyzando DMs a cada {wait} segundos...")
+    while True:
+        since_id = check_direct_messages(api, since_id)
+        save_last_id(since_id, 'dm_id')
         time.sleep(wait)
 
 
@@ -121,5 +140,17 @@ def main():
 
 # Ponto de partyda
 
+
 if __name__ == "__main__":
-    main()
+    funcs = [monitor_tweets, monitor_dms]
+    threads = []
+
+    for func in funcs:
+        thread = threading.Thread(target=func)
+        threads.append(thread)
+        thread.start()
+
+    logger.info(f"Bot ynycyado!")
+
+    for index, thread in enumerate(threads):
+        thread.join()

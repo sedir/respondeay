@@ -3,7 +3,8 @@
 # Edit at https://www.gitignore.io/?templates=osx,python,pycharm+all
 
 ### Data ###
-data/last_id.txt
+data/tweet_id.txt
+data/dm_id.txt
 .env
 venv/
 venv/*
