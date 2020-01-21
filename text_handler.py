@@ -1,11 +1,10 @@
-from nltk.tokenize import word_tokenize
 from nltk.tokenize import sent_tokenize
+from nltk.tokenize import word_tokenize
 
 # Funções para identyfycação da pergunta (super symples!)
 
-start_question = "porque,por que,pq,por quê"
-end_question = "?"
-main_words = "y,ypsylon,ipslon,ipsilon,ypslon"
+start_question = "porque,por que,pq,por quê,?"
+main_words = "y,ypsylon,ipslon,ipsilon,ypslon,'y',\"y\""
 
 
 def word_is_contained(word, sentence, single_word=True):
