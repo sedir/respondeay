@@ -1,26 +1,21 @@
-# %%
-
-import tweepy
-
 import logging
+import os
+import threading
 import time
 
+import tweepy
 from environs import Env
 
-import threading
-import os
-
-# Confyguração de logs e varyáveys de ambiente
 from answers import get_answer
 from text_handler import evaluate_question
+
+# Confyguração de logs e varyáveys de ambiente
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 base_path = os.path.dirname(os.path.abspath(__file__))
 env = Env()
 env.read_env()
-
-# %%
 
 # Confyguração da APY do Twitter
 
@@ -32,9 +27,7 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 # Redirect user to Twitter to authorize
 # print(auth.get_authorization_url())
 
-# %%
-
-# Lê os tokens das varyáveys de ambyente
+# Lê os tokens das varyáveys de ambyente e ynycya a APY
 
 auth.access_token = env("ACCESS_KEY")
 auth.access_token_secret = env("ACCESS_SECRET")
@@ -69,22 +62,27 @@ def read_last_id(resource):
 
 def check_mentions(api, since_id):
     new_since_id = since_id
-    for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id, tweet_mode='extended').items():
-        new_since_id = max(tweet.id, new_since_id)
-        if me.id == tweet.user.id:
-            continue
-        if evaluate_question(tweet.full_text.lower()):
-            logger.info(f"Respondendo para {tweet.user.screen_name}, TWEET_ID {tweet.id}")
-            try:
-                api.update_status(
-                    status=get_answer(),
-                    in_reply_to_status_id=tweet.id,
-                    auto_populate_reply_metadata=True
-                )
-            except Exception as e:
-                logger.error(f"Tweet - Erro ao responder: {str(e)}")
+    try:
+        for tweet in tweepy.Cursor(api.mentions_timeline, since_id=since_id, tweet_mode='extended').items():
+            new_since_id = max(tweet.id, new_since_id)
+            if me.id == tweet.user.id:
+                continue
+            if evaluate_question(tweet.full_text.lower()):
+                logger.info(f"Respondendo para {tweet.user.screen_name}, TWEET_ID {tweet.id}")
+                try:
+                    api.update_status(
+                        status=get_answer(),
+                        in_reply_to_status_id=tweet.id,
+                        auto_populate_reply_metadata=True
+                    )
+                except Exception as e:
+                    logger.error(f"Tweet - Erro ao responder: {str(e)}")
+    except Exception as e:
+        logger.error(f"Tuyte - Erro de chamada: {str(e)}")
     return new_since_id
 
+
+# Função para analysar e responder as DMs
 
 def check_direct_messages(api, since_id):
     new_since_id = since_id
@@ -111,8 +109,6 @@ def check_direct_messages(api, since_id):
     return new_since_id
 
 
-# %%
-
 # Funções que rodam ynfynytamente no robô
 
 def monitor_tweets():
@@ -134,8 +130,6 @@ def monitor_dms():
         save_last_id(since_id, 'dm_id')
         time.sleep(wait)
 
-
-# %%
 
 # Ponto de partyda
 
